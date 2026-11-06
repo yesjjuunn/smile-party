@@ -32,6 +32,9 @@
   color-scheme:light;
 }
 html{background:var(--paper)}
+/* 카톡 등 폰 브라우저 흔들림 방지 (11/6): 판이 미끄러지는 효과가 잠깐 화면 밖으로 나가도 페이지 폭이 늘지 않게(clip은 고정 메뉴를 깨지 않음), 좌우 튕김·글자 자동 확대·두 번 톡 확대 막기 */
+html{overflow-x:hidden;overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
+body{overflow-x:clip;overscroll-behavior-x:none}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.9;-webkit-font-smoothing:antialiased}
 .page{max-width:440px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:56px 40px;display:flex;flex-direction:column;gap:96px;text-align:center}
 section{display:flex;flex-direction:column;align-items:center;gap:14px}
