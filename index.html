@@ -665,7 +665,10 @@ function syncIcon(){const p=bgm.paused;sound.classList.toggle('playing',!p);$('#
 bgm.addEventListener('play',syncIcon);bgm.addEventListener('pause',syncIcon);
 sound.onclick=()=>{if(bgm.paused){userPaused=false;bgm.play().catch(()=>{});}else{userPaused=true;bgm.pause();}};
 document.addEventListener('click',e=>{const a=e.target.closest('a[target="_blank"]');if(a&&!bgm.paused){bgm.pause();awayForLink=true;}});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(awayForLink||!userPaused)&&bgm.paused&&entered){awayForLink=false;bgm.play().catch(()=>{});}});
+/* 폰은 손을 대지 않고 소리를 켜면 막음(유튜브에서 돌아올 때 등) → 막히면 화면을 처음 누를 때 다시 켬. 음악 버튼을 누른 건 그 버튼이 처리 */
+let touchArmed=false;
+function playOrWaitTouch(){bgm.play().catch(()=>{if(touchArmed)return;touchArmed=true;const f=e=>{if(e.target.closest('#sound'))return;removeEventListener('click',f,true);removeEventListener('touchend',f,true);touchArmed=false;if(bgm.paused&&!userPaused)bgm.play().catch(()=>{});};addEventListener('click',f,true);addEventListener('touchend',f,true);});}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(awayForLink||!userPaused)&&bgm.paused&&entered){awayForLink=false;playOrWaitTouch();}});
 
 /* reveal: 화면마다 새로 실행 */
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;let io,tio;
@@ -732,7 +735,7 @@ $('#enterBtn').onclick=()=>{
 };
 /* 유튜브에서 돌아온 경우: 입장 화면 건너뜀. 음악은 폰이 자동 재생을 막으면 오른쪽 위 '재생'으로 다시 켤 수 있음 */
 if(back){
-  entered=true;$('#gate').hidden=true;sound.hidden=false;syncIcon();bgm.play().catch(()=>{});
+  entered=true;$('#gate').hidden=true;sound.hidden=false;syncIcon();playOrWaitTouch();
   if(!reduce)document.documentElement.classList.add('armed');
   reveal(viewEl(current));
 }
@@ -1003,14 +1006,17 @@ function go(url){
     /* 실제 사이트(GitHub Pages): 같은 창에서 바로 이동. '뒤로' 왔을 때 이어 보도록 지금 분위기·곡을 기억 */
     try{sessionStorage.setItem('sp-back',JSON.stringify({t:Date.now(),mood,idx}));}catch(e){}
     location.href=url;
-    setTimeout(()=>{if(!document.hidden&&!ov.hidden)fb.hidden=false;},1500);
+    /* 아이폰 사파리는 탭 없이 하는 이동을 가끔 따르지 않음 → 그대로 남아 있으면 같은 창으로 가는 버튼(탭 한 번이면 확실히 이동) */
+    fb.target='_self';
+    setTimeout(()=>{if(!document.hidden&&!ov.hidden)fb.hidden=false;},1000);
   }else{
-    /* 미리보기 안: 폰 브라우저가 자동 이동을 막아서 버튼을 띄움 */
-    fb.hidden=false;
+    /* 미리보기 안: 폰 브라우저가 자동 이동을 막아서 버튼을 띄움(새 탭) */
+    fb.target='_blank';fb.hidden=false;
   }
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&navigated)stopAll()});
-addEventListener('pageshow',e=>{if(!e.persisted)return;try{sessionStorage.removeItem('sp-back');}catch(x){}if(!ov.hidden)stopAll()});
+/* 사파리가 '뒤로'를 저장된 화면 그대로 보여 줄 때(pageshow persisted): 티켓 닫고 음악 다시(막히면 첫 탭에) */
+addEventListener('pageshow',e=>{if(!e.persisted)return;try{sessionStorage.removeItem('sp-back');}catch(x){}if(!ov.hidden||navigated)stopAll();if(entered&&!userPaused&&bgm.paused){awayForLink=false;playOrWaitTouch();}});
 fb.addEventListener('click',()=>setTimeout(stopAll,400));
 
 (function(){try{const c=document.createElement('canvas');c.width=c.height=220;const x=c.getContext('2d'),d=x.createImageData(220,220);
